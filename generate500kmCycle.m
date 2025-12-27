@@ -2,16 +2,7 @@ function cycle500km = generate500kmCycle(timePerCycle, speedPerCycle)
 % generate500kmCycle
 % Generate vehicle speed-time-displacement curves over a 500km range
 %
-% Inputs:
-%   timePerCycle  - time vector for a single cycle [s]
-%   speedPerCycle - speed vector for a single cycle [km/h]
-%
-% Outputs:
-%   cycle500km - structure containing:
-%       .time       - time vector for 500km range [s]
-%       .speed      - speed vector for 500km range [km/h]
-%       .displace   - cumulative displacement for 500km range [km]
-%       .acc        - acceleration vector for 500km range [m/s^2]
+
 
     % Calculate displacement for a single cycle
     displacePerCycle = calcDisplace(timePerCycle, speedPerCycle);
