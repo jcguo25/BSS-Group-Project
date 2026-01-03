@@ -139,13 +139,15 @@ end
 % Post-processing: Calculate cumulative energy and average power
 energyConsum = cumsum(P_req .* dt) / 3600; % [kWh]
 avgPwr = energyConsum(end) * 3600 / cycle500km.time(end); % [kW]
+eqvlSocCycles = calcEqvlSocCycle(soc);
 
 %% Plot & Results Output
 fprintf('Total energy consumption over 500 km: %.2f kWh\n', energyConsum(end));
 fprintf('Average power: %.2f kW\n', avgPwr)
 fprintf('Power for cruising at 140kph: %.2f kW\n', P_req140kph);
 fprintf('Power for cruising at 200kph: %.2f kW\n', P_req200kph);
-fprintf('Run Visualization.m to plot the results\n')
+fprintf('Equivalent SoC Cycles in 500km run: %.0f \n', eqvlSocCycles);
+fprintf('Run Visualization.m to plot the results\n');
 
 %% ===== Helper Functions =====
 
