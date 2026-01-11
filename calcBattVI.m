@@ -6,9 +6,9 @@ function [V_pack, I_pack] = calcBattVI(P_batt, soc, batt)
 %% Exact data
 soc_axis = batt.cell.soc_axis;              % [Ah]
 ocv_volt_axis = batt.cell.ocv_volt_axis;    % [V]
-R_cell = batt.cell.R_int;                   % [mOhm]
 Ns = batt.Ns;                               % number of cells in serise
 Np = batt.Np;                               % number of cells in parallel
+R_pack = batt.R_int_pack;
 
 %% ===== 1. OCV lookup =====
 V_cell_ocv = interp1( ...
@@ -19,7 +19,7 @@ V_cell_ocv = interp1( ...
 V_pack_ocv = V_cell_ocv * Ns;   % [V]
 
 %% ===== 2. Equivalent parameters =====
-R_pack = R_cell * Ns / Np / 1000;   %[Ohm]
+%R_pack = R_cell * Ns / Np / 1000;   %[Ohm]
 
 %% ===== 3. Solve current from power balance =====
 P_W = P_batt * 1000;    % [W]
@@ -31,6 +31,7 @@ c = P_W;
 disc = b^2 - 4*a*c;
 if disc < 0
     disc = 0;
+    warning("exceed maximum battery power")
 end
 
 I_pack = (-b - sqrt(disc)) / (2*a);

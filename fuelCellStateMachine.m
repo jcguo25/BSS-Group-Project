@@ -3,8 +3,7 @@ function fcState = fuelCellStateMachine(P_req, soc, fcTimerState, P_reqAll, i, f
 
     % --- Battery Parameter Extraction & Power Limit Calculation ---
     % Calculate max battery discharge power [kW]
-    P_battPackMax = batt.cell.capacity_Ah * batt.cell.CRateMax * ...
-        batt.cell.ocv_volt_axis(1) * batt.Ns * batt.Np / 1000;      
+    P_battPackMax = batt.P_DischrgPackMax;      
     
     socChrgLmt = batt.socChrgLmt;       % High SoC threshold
     socDischrgLmt = batt.socDischrgLmt; % Low SoC threshold

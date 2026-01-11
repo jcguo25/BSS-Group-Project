@@ -1,5 +1,7 @@
 close all;
 
+RGB = orderedcolors("gem");
+
 %% Battery Power and Soc in first 1800s (Zoomed-in View)
 % Extracting discharge (positive) and charge (negative) components
 P_battDischrg = max(P_batt, 0);   % Battery discharge power [kW]
@@ -40,31 +42,58 @@ legend('P_{Discharge}', 'P_{Charge}', 'SoC');
 
 %% Battery Power and SoC through the whole run (Full 500km View)
 % This section mirrors the above logic but applies it to the entire mission duration
-figure('Name', 'Power of Charge & Discharge', 'NumberTitle', 'off');
+figure('Name', 'Power of Fuel Cell', 'NumberTitle', 'off');
 
-p_pos = area(t, P_battDischrg, 'FaceColor', [1.0 0.9 0.9], 'EdgeColor', 'none');
-set(p_pos, 'HandleVisibility', 'off');
+x_fc = [t; flipud(t)];
+y_fc = [zeros(size(P_fc)); flipud(P_fc)];
+
+P_fcArea = fill(x_fc, y_fc, ...
+     RGB(4,:), ...        
+     'FaceAlpha', 0.3, ...
+     'EdgeColor', 'none');
 hold on;
-p_neg = area(t, P_battChrg, 'FaceColor', [0.9 0.9 1.0], 'EdgeColor', 'none');
-set(p_neg, 'HandleVisibility', 'off');
+% plot(t, P_fc, 'k', 'LineWidth', 1.2);
+hold on;
 
-plot(t, P_battDischrg, 'r', 'LineWidth', 1.2);
-plot(t, P_battChrg,    'b', 'LineWidth', 1.2);
+x_disChrg = [t; flipud(t)];
+y_disChrg = [P_fc; flipud(P_fc+P_battDischrg)];
+P_DischrgArea = fill(x_disChrg, y_disChrg, ...
+     RGB(2,:), ...        
+     'FaceAlpha', 0.3, ...
+     'EdgeColor', 'none');
+
+x_chrg = [t; flipud(t)];
+y_chrg = [P_fc; flipud(P_fc+P_battChrg)];
+P_ChrgArea = fill(x_chrg, y_chrg, ...
+     RGB(6,:), ...        
+     'FaceAlpha', 0.3, ...
+     'EdgeColor', 'none');
+
+plot(t, P_fc, 'Color', RGB(4,:), 'LineWidth', 1.5);
+hold on;
+
+grid on;
 xlabel('Time [s]');
 ylabel('Power [kW]');
-grid on;
-
-yyaxis right
-plot(t, soc * 100, 'LineWidth', 1.5);
-ylabel('SoC [%]');
-legend('P_{Discharge}', 'P_{Charge}', 'SoC');
+legend([P_fcArea, P_DischrgArea, P_ChrgArea], ...
+    {'P_{fc}', 'P_{Discharge}', 'P_{Charge}'}, 'Location', 'best')
 
 %% Current Profile of Battery Pack
 figure('Name','Current Profile', 'NumberTitle','off');
-plot(t, I_pack) % Battery pack current profile [A]
+CurrentProfile = plot(t, I_pack); % Battery pack current profile [A]
+hold on;
+maxDischrgCurr = batt.cell.capacity_Ah * batt.cell.CRateMaxDischrg * batt.Np;
+maxChrgCurr = -batt.cell.capacity_Ah* batt.cell.CRateMaxChrg * batt.Np;
+
+maxDischrgCurrLine = yline(maxDischrgCurr', 'LineWidth', 1, 'Color', 'r');
+maxChrgCurrLine = yline(maxChrgCurr, 'LineWidth', 1, 'Color', 'b');
+
 grid on;
 xlabel('Time [s]');
 ylabel('Current [A]');
+legend([CurrentProfile, maxDischrgCurrLine, maxChrgCurrLine], ...
+    {'Battery Current', 'Maximum Discharge Current', 'Maximum Charge Current'}, ...
+    'Location','best')
 
 %% Integrated Overview: SoC and Fuel Cell Operational Logic
 figure('Name','SOC and Power Overview','NumberTitle','off');
@@ -109,3 +138,50 @@ legend([h_fc, p_pos, p_neg, p_soc], ...
     {'Fuel Cell On', 'P_{Discharge}', 'P_{Charge}', 'SoC'}, ...
     'Location', 'best');
 grid on;
+
+%% Frequency Distribution of Power, Current and SoC
+
+figure('Name','Frequency Distribution of Power, Current and SoC','NumberTitle','off');
+% Calculate and plot histograms for power, current, and SoC
+subplot(3, 2, 1);
+histogram(P_batt, 'Normalization', 'probability', 'BinWidth', 0.5, ...
+    'FaceColor', RGB(1,:), 'FaceAlpha', 0.5, 'EdgeColor', 'none');
+xlabel('Power [kW]');
+ylabel('Frequency');
+title('Frequency Distribution of Battery Power');
+
+subplot(3, 2, 2)
+histogram(P_req, 'Normalization', 'probability', 'BinWidth', 0.5, ...
+    'FaceColor', RGB(2,:), 'FaceAlpha', 0.5, 'EdgeColor', 'none')
+xlabel('Power [kW]');
+ylabel('Frequency');
+title('Frequency Distribution of Invertor Power');
+
+subplot(3, 2, 3)
+histogram(soc, 'Normalization', 'probability', 'BinWidth', 0.001, ...
+    'FaceColor', RGB(3,:), 'FaceAlpha', 0.5, 'EdgeColor', 'none');
+xlabel('State of Charge [%]');
+ylabel('Frequency');
+title('Frequency Distribution of State of Charge');
+
+subplot(3, 2, 4);
+histogram(I_pack, 'Normalization', 'probability', 'BinWidth', 1, ...
+    'FaceColor', RGB(4,:), 'FaceAlpha', 0.5, 'EdgeColor', 'none');
+xlabel('Current [A]');
+ylabel('Frequency');
+title('Frequency Distribution of Battery Current');
+
+subplot(3, 2, 5)
+histogram(P_fc, 'Normalization', 'probability', 'BinWidth', 1, ...
+    'FaceColor', RGB(5,:), 'FaceAlpha', 0.5, 'EdgeColor', 'none');
+xlabel('Power [kW]');
+ylabel('Frequency');
+title('Frequency Distribution of Fuel Cell');
+
+%% Heat Generation
+figure('Name','Heat Generation Power of Pack','NumberTitle','off');
+plot(t, P_OhmicDissipation);
+hold on;
+grid on;
+xlabel('Time [s]');
+ylabel('Power [W]');
