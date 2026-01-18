@@ -16,9 +16,11 @@ function fcState = fuelCellStateMachine(P_req, soc, fcTimerState, P_reqAll, i, f
     t_fcOffMin = fc.t_fcOffMin;         % Min downtime constraint [s]
     
     % --- Look-ahead Logic ---
-    P_next = 0;
-    if i < length(P_reqAll)
-        P_next = P_reqAll(i+1);         % Anticipate demand for the next step
+    PreqPredictPeriod = 100;
+    if i < length(P_reqAll)-PreqPredictPeriod
+        P_next = P_reqAll(i:i+PreqPredictPeriod);         % Anticipate demand for the next step
+    else
+        P_next = P_reqAll(i:end);
     end
 
     % --- State Machine Logic ---
@@ -33,9 +35,8 @@ function fcState = fuelCellStateMachine(P_req, soc, fcTimerState, P_reqAll, i, f
             % Condition to switch ON -> OFF:
             % 1. Min runtime met AND demand is below efficiency threshold
             % 2. OR SoC is high AND demand is below efficiency threshold
-            if ((fcOnTimer > t_fcOnMin) && (P_req < P_MaxEff)) || ...
-               ((soc > socChrgLmt) && (P_req < P_MaxEff)) 
-                currentState = "OFF";
+            if (P_req < P_MaxEff) && (soc > socDischrgLmt)
+                currentState = "IDLE";
             end
             
         case "OFF"
@@ -47,7 +48,17 @@ function fcState = fuelCellStateMachine(P_req, soc, fcTimerState, P_reqAll, i, f
             if ((P_req > 0) && (soc < socDischrgLmt)) || ...
                ((P_req > P_MaxEff) && (fcOffTimer > t_fcOffMin)) || ...
                (P_req > P_battPackMax) || ...
-               (P_next > P_battPackMax)
+               any(P_next > P_battPackMax)
+                currentState = "ON";
+            end
+
+        case "IDLE"  
+            fcState = 2;
+            if ((length(P_next(P_next<P_MaxEff)) > length(PreqPredictPeriod)*0.8) && (soc > socChrgLmt) && (fcOnTimer > t_fcOnMin)) || ...
+                    (soc > 0.9)
+                currentState = "OFF";
+            elseif ((P_req > P_MaxEff)) || ...
+                    (soc < socDischrgLmt)
                 currentState = "ON";
             end
     end
