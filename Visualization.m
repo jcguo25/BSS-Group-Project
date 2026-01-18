@@ -1,4 +1,4 @@
-close all;
+% close all;
 
 RGB = orderedcolors("gem");
 
@@ -59,14 +59,14 @@ x_disChrg = [t; flipud(t)];
 y_disChrg = [P_fc; flipud(P_fc+P_battDischrg)];
 P_DischrgArea = fill(x_disChrg, y_disChrg, ...
      RGB(2,:), ...        
-     'FaceAlpha', 0.3, ...
+     'FaceAlpha', 0.5, ...
      'EdgeColor', 'none');
 
 x_chrg = [t; flipud(t)];
 y_chrg = [P_fc; flipud(P_fc+P_battChrg)];
 P_ChrgArea = fill(x_chrg, y_chrg, ...
      RGB(6,:), ...        
-     'FaceAlpha', 0.3, ...
+     'FaceAlpha', 0.5, ...
      'EdgeColor', 'none');
 
 plot(t, P_fc, 'Color', RGB(4,:), 'LineWidth', 1.5);
@@ -75,8 +75,14 @@ hold on;
 grid on;
 xlabel('Time [s]');
 ylabel('Power [kW]');
-legend([P_fcArea, P_DischrgArea, P_ChrgArea], ...
-    {'P_{fc}', 'P_{Discharge}', 'P_{Charge}'}, 'Location', 'best')
+
+yyaxis right
+socProfile = plot(t, soc * 100, 'LineWidth', 1.5); % SoC trend [%]
+ylabel('SoC [%]');
+ylim([0 100]);
+
+legend([P_fcArea, P_DischrgArea, P_ChrgArea, socProfile], ...
+    {'P_{fc}', 'P_{Discharge}', 'P_{Charge}', 'SoC'}, 'Location', 'best')
 
 %% Current Profile of Battery Pack
 figure('Name','Current Profile', 'NumberTitle','off');
@@ -99,6 +105,7 @@ legend([CurrentProfile, maxDischrgCurrLine, maxChrgCurrLine], ...
 figure('Name','SOC and Power Overview','NumberTitle','off');
 t = cycle500km.time;
 fcOn = fcState;     % Digital status: 1 = FC Active, 0 = FC Standby
+fcOn(fcOn>1) = 1;
 
 % Edge Detection: Identify start/stop timestamps for the Fuel Cell
 fcDiff = diff([0; fcOn; 0]);
@@ -160,7 +167,7 @@ title('Frequency Distribution of Invertor Power');
 subplot(3, 2, 3)
 histogram(soc, 'Normalization', 'probability', 'BinWidth', 0.001, ...
     'FaceColor', RGB(3,:), 'FaceAlpha', 0.5, 'EdgeColor', 'none');
-xlabel('State of Charge [%]');
+xlabel('State of Charge');
 ylabel('Frequency');
 title('Frequency Distribution of State of Charge');
 

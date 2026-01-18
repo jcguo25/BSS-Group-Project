@@ -1,6 +1,6 @@
+clear functions;
 clear;
 clc;
-clear function;
 
 %% ===== Load cycle files =====
 % Loading standard driving cycles and pre-processed motor efficiency data
@@ -17,7 +17,7 @@ load("MotorEfficiencyMap.mat")  % Motor efficiency look-up table [speed, torque]
 %   fc:   Fuel Cell system constraints and performance targets
 
 % --- Vehicle Parameters ---
-veh.m_body = 1600;              % Vehicle body mass [kg]
+veh.m_body = 1900;              % Vehicle body mass [kg]
 veh.m_batt = 100;               % Battery pack mass [kg]
 veh.m_fuelCell = 150;           % Fuel cell system mass [kg]
 veh.m_payload = 500;            % Additional payload/passenger mass [kg]
@@ -25,8 +25,8 @@ veh.m_veh = veh.m_body + veh.m_batt + veh.m_fuelCell; % Net vehicle mass [kg]
 veh.m_total = veh.m_veh + veh.m_payload;             % Gross vehicle mass (GVM) [kg]
 veh.g = 9.81;                   % Gravitational acceleration [m/s^2]
 veh.rho_air = 1.225;            % Air density [kg/m^3]
-veh.c_d = 0.34;                 % Aerodynamic drag coefficient [-]
-veh.A = 2.65;                   % Vehicle frontal area [m^2]
+veh.c_d = 0.25;                 % Aerodynamic drag coefficient [-]
+veh.A = 2.82;                   % Vehicle frontal area [m^2]
 veh.f_w = 0.012;                % Rolling resistance coefficient [-]
 veh.e_i = 1.1;                  % Equivalent mass factor for rotational inertia [-]
 veh.r_wheel = 0.31;             % Effective wheel rolling radius [m]
@@ -36,28 +36,29 @@ drvt.i_g = 9.04;                % Transmission/Gear reduction ratio [-]
 drvt.eta_g = 0.97;              % Gearbox mechanical efficiency [-]
 drvt.eta_motor = MotorEfficiencyMap; % Motor efficiency data structure
 drvt.regen_ratio = 0.2;         % Proportion of braking energy recovered by motor [-]
-drvt.eta_inverter = 0.9;        % Power electronics (Inverter) efficiency [-]
+drvt.eta_inverter = 0.95;        % Power electronics (Inverter) efficiency [-]
 
 % --- Fuel Cell (FC) Parameters ---
 fc.fcStatInit = 0;              % Initial FC status (1: ON, 0: OFF)
-fc.t_fcOnMin = 100;             % Minimum required continuous ON time [s]
+fc.t_fcOnMin = 300;             % Minimum required continuous ON time [s]
 fc.t_fcOffMin = 500;            % Minimum required continuous OFF time [s]
-fc.P_MaxEff = 5;               % Power output at peak stack efficiency [kW]
+fc.P_MaxEff = 10;               % Power output at peak stack efficiency [kW]
 fc.P_max = 30;                 % Maximum rated power of the FC stack [kW]
+fc.P_idle = 1.5;
 
 % --- Battery Parameters ---
-batt.soc_init = 0.7;            % Initial State of Charge (0 to 1)
+batt.soc_init = 0.4;            % Initial State of Charge (0 to 1)
 batt.Np = 31;                   % Number of parallel cell strings in the pack [-]
 batt.Ns = 100;                  % Number of series cells in the pack [-]
-batt.socChrgLmt = 0.8;          % SoC upper limit (FC stops charging battery) [-]
-batt.socDischrgLmt = 0.6;       % SoC lower limit (FC starts to support/charge) [-]
+batt.socChrgLmt = 0.6;          % SoC upper limit (FC stops charging battery) [-]
+batt.socDischrgLmt = 0.4;       % SoC lower limit (FC starts to support/charge) [-]
 
 % --- OCV-SOC curve for NMC Li-ion cell ---
 % Battery Open Circuit Voltage [V] relative to State of Charge (0~1)
 batt.cell.soc_axis = [0.00, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95, 1.00];
 batt.cell.ocv_volt_axis = [3.00, 3.25, 3.40, 3.55, 3.62, 3.68, 3.72, 3.76, 3.80, 3.85, 3.92, 3.97, 4.00];
 batt.cell.capacity_Ah = 1.5;         % Capacity of a single battery cell [Ah]
-batt.cell.R_int = 79;                % Single cell internal resistance [mOhm]
+batt.cell.R_int = 20;                % Single cell internal resistance [mOhm]
 batt.cell.CRateMaxDischrg = 10;      % Maximum allowable C-rate for discharging [-]
 batt.cell.CRateMaxChrg = 1;          % Maximun allowable C-rate for charging [-]
 
@@ -76,7 +77,7 @@ timePerCycle = WLTC_class_3b.Time;
 speedPerCycle = WLTC_class_3b.Data;
 
 % Synthesize a long-distance mission (500 km range)
-cycle500km = generateRangeCycle(timePerCycle, speedPerCycle, 500, true);
+cycle500km = generateRangeCycle(timePerCycle, speedPerCycle, 500, false);
 
 % Performance Benchmark: Calculate steady-state cruising power
 cruise140kph = createCruiseCondtion(140);
@@ -117,12 +118,12 @@ for i = 1:N
     cycle_i.acc = cycle500km.acc(i);
     
     % Update Fuel Cell State Timer (tracks how long FC has been in current state)
-    if i == 1
+    if i <= 2
         [fcTimerState.OnTimer, fcTimerState.OffTimer] = fcTimer(fcState(i), ...
             fcState(i), fcTimerState, dt(i));
     else
-        [fcTimerState.OnTimer, fcTimerState.OffTimer] = fcTimer(fcState(i), ...
-            fcState(i-1), fcTimerState, dt(i));
+        [fcTimerState.OnTimer, fcTimerState.OffTimer] = fcTimer(fcState(i-1), ...
+            fcState(i-2), fcTimerState, dt(i));
     end
     
     % Update Battery SoC based on previous step current integration
@@ -163,7 +164,7 @@ fprintf('Total energy generated by FC over 500 km:      %.2f kWh\n', energyGener
 fprintf('Total ohmic dissipation:                       %.2f kWh\n', totalOhmicDissipation(end))
 fprintf('Power for cruising at 140kph:                  %.2f kW\n', P_req140kph);
 fprintf('Power for cruising at 200kph:                  %.2f kW\n', P_req200kph);
-fprintf('Equivalent SoC Cycles in 500km run:            %.0f \n', eqvlSocCycles);
+fprintf('Equivalent SoC Cycles in 500km run:            %.2f \n', eqvlSocCycles);
 fprintf('Run Visualization.m to plot the results\n');
 
 %% ===== Helper Functions =====
