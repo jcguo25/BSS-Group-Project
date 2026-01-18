@@ -14,7 +14,7 @@ function [P_batt, P_fc] = detmPowerDistribution(fcState, P_req, fc, batt)
             P_batt = P_req - P_fc;    % negative, charging
             if P_batt < -P_BattChrgMax
                 P_batt = -P_BattChrgMax; % Limit charging power to maximum charging capacity
-                P_fc = P_req - P_batt;
+                %P_fc = P_req - P_batt;
             end
         elseif P_req > P_fcMaxEff
             P_fc = P_req;
@@ -35,6 +35,14 @@ function [P_batt, P_fc] = detmPowerDistribution(fcState, P_req, fc, batt)
             P_batt = P_BattDischrgMax; % Limit battery power to maximum discharge capacity
         elseif P_batt < -P_BattChrgMax
             P_batt = -P_BattChrgMax;
+        end
+    elseif fcState == 2
+        P_fc = fc.P_idle;
+        P_batt = P_req - P_fc; % Calculate battery power based on idle fuel cell power
+        if P_batt > P_BattDischrgMax
+            P_batt = P_BattDischrgMax; % Limit discharge power to maximum discharge capacity
+        elseif P_batt < -P_BattChrgMax
+            P_batt = -P_BattChrgMax; % Limit charging power to maximum charging capacity
         end
     end
     
