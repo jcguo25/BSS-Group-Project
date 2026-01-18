@@ -6,6 +6,14 @@ function [fcOnTimer, fcOffTimer] = fcTimer(fcStatusCurrent, fcStatusPrev, fcTime
     fcOnTimer = fcTimerState.OnTimer;
     fcOffTimer = fcTimerState.OffTimer;
 
+    if fcStatusCurrent == 2
+        fcStatusCurrent = 1;
+    end
+
+    if fcStatusPrev == 2
+        fcStatusPrev = 1;
+    end
+
     % ----- State transitions -----
     % Transition: OFF -> ON
     if fcStatusCurrent == 1 && fcStatusPrev == 0
